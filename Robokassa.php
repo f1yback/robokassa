@@ -2,6 +2,9 @@
 
 namespace app\components;
 
+use JsonException;
+use Yii;
+
 /**
  * Компонент для работы с робокассой
  */
@@ -27,7 +30,7 @@ class Robokassa extends yii\base\Component implements PaymentEndpointInterface
      * Проверяем на тестовый режим
      * @return bool
      */
-    private function checkIsTest() : bool
+    private function checkIsTest(): bool
     {
         return isset($this->config['test']);
     }
@@ -36,20 +39,20 @@ class Robokassa extends yii\base\Component implements PaymentEndpointInterface
      * Метод начальной инициализации
      * @return void
      */
-    private function init() : void
+    private function init(): void
     {
-        $this->password_1 = \Yii::$app->params[$this->checkIsTest() ? 'rk_password_3' : 'rk_password_1'];
-        $this->password_2 = \Yii::$app->params[$this->checkIsTest() ? 'rk_password_4' : 'rk_password_2'];
+        $this->password_1 = Yii::$app->params[$this->checkIsTest() ? 'rk_password_3' : 'rk_password_1'];
+        $this->password_2 = Yii::$app->params[$this->checkIsTest() ? 'rk_password_4' : 'rk_password_2'];
         $this->isTest = $this->checkIsTest() ? '1' : '';
         $this->baseUrl = 'https://auth.robokassa.ru/Merchant/Index.aspx?MerchantLogin=';
-        $this->shopID = \Yii::$app->params['rk_shop_id'];
+        $this->shopID = Yii::$app->params['rk_shop_id'];
     }
 
     /**
      * Делаем чек для отправки
      * @return void
      */
-    private function makeReceipt() : void
+    private function makeReceipt(): void
     {
         $this->receipt = [
             'sno' => 'osn',
@@ -58,9 +61,9 @@ class Robokassa extends yii\base\Component implements PaymentEndpointInterface
                     'name' => $this->config['name'],
                     'quantity' => $this->config['quantity'],
                     'sum' => $this->config['price'],
-                    "payment_method" => "full_payment",
-                    "payment_object" => "payment",
-                    "tax" => "none",
+                    'payment_method' => 'full_payment',
+                    'payment_object' => 'payment',
+                    'tax' => 'none',
                 ],
             ]
         ];
@@ -70,21 +73,21 @@ class Robokassa extends yii\base\Component implements PaymentEndpointInterface
      * Получаем дополнительные параметры для URL
      * @return string
      */
-    private function getParams() : string
+    private function getParams(): string
     {
         return !empty($this->config['params']) ? http_build_query($this->config['params']) : '';
     }
 
     /**
      * Получаем чек в формате json
-     * @throws \JsonException
+     * @throws JsonException
      */
-    private function getJsonReceipt() : string
+    private function getJsonReceipt(): string
     {
         return json_encode($this->receipt, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }
 
-    private function getCrcParams(string $jsonReceipt) : string
+    private function getCrcParams(string $jsonReceipt): string
     {
         $baseString = "{$this->shopID}:{$this->config['price']}:{$this->config['invoice']}:{$jsonReceipt}:{$this->password_1}";
         if (!empty($this->config['params'])) {
@@ -97,7 +100,7 @@ class Robokassa extends yii\base\Component implements PaymentEndpointInterface
 
     /**
      * Генерируем линк на оплату в Робокассе
-     * @throws \JsonException
+     * @throws JsonException
      */
     public function generatePayLink(): string
     {
